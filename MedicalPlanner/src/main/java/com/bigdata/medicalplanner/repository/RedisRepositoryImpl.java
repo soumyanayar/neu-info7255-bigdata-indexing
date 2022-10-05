@@ -32,4 +32,9 @@ public class RedisRepositoryImpl<T> implements RedisRepository<T> {
     public T getValue(String key) {
         return valueOperations.get(key);
     }
+
+    @Override
+    public boolean deleteValue(String key) {
+        return Boolean.TRUE.equals(redisTemplate.delete(key));
+    }
 }

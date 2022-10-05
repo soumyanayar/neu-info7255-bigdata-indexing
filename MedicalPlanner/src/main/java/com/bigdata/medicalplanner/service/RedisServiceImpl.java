@@ -25,4 +25,12 @@ public class RedisServiceImpl implements RedisService {
         redisRepository.putValue(key, value);
         logger.info("postValue ( key : " + key + " value : " + value + " - End");
     }
+
+    @Override
+    public boolean deleteValue(String key) {
+        logger.info("deleteValue ( key : " + key + " - Start");
+        boolean isDeleted = redisRepository.deleteValue(key);
+        logger.info("deleteValue ( key : " + key + " - End");
+        return isDeleted;
+    }
 }
