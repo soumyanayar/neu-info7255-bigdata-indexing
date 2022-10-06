@@ -8,10 +8,14 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RedisServiceImpl implements RedisService {
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Logger logger;
+    private final RedisRepository<String> redisRepository;
 
     @Autowired
-    RedisRepository<String> redisRepository;
+    public RedisServiceImpl(RedisRepository<String> redisRepository) {
+        this.redisRepository = redisRepository;
+        this.logger = LoggerFactory.getLogger(this.getClass());
+    }
 
     @Override
     public String getValue(String key) {

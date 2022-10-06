@@ -19,16 +19,16 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 public class MedicalPlanController {
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final RedisService redisService;
+    private final JsonValidator validator;
+    private final Schema jsonSchema;
 
     @Autowired
-    private RedisService redisService;
-
-    @Autowired
-    JsonValidator validator;
-
-    @Autowired
-    Schema jsonSchema;
+    public MedicalPlanController(RedisService redisService, JsonValidator validator, Schema jsonSchema) {
+        this.redisService = redisService;
+        this.validator = validator;
+        this.jsonSchema = jsonSchema;
+    }
 
     @GetMapping(value = "/plan/{key}", produces = "application/json")
     public ResponseEntity<Object> getValue(@PathVariable String key) {
@@ -66,7 +66,7 @@ public class MedicalPlanController {
         return ResponseEntity.ok().body(" {\"message\": \"Created data with key: " + key + "\" }");
     }
 
-    @DeleteMapping(path = "/plan/{key}")
+    @DeleteMapping(path = "/plan/{key}", produces = "application/json")
     public ResponseEntity<Object> deletePlan(@PathVariable String key) {
         if (redisService.getValue(key) == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(" {\"message\": \"A resource does not exists with the id: " + key + "\" }");
