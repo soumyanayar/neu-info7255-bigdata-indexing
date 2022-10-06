@@ -4,6 +4,7 @@ import com.bigdata.medicalplanner.service.RedisService;
 import com.bigdata.medicalplanner.util.JsonValidator;
 import com.fasterxml.jackson.databind.JsonNode;
 import netscape.javascript.JSObject;
+import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,6 +27,8 @@ public class MedicalPlanController {
     @Autowired
     JsonValidator validator;
 
+    @Autowired
+    Schema jsonSchema;
 
     @GetMapping(value = "/plan/{key}", produces = "application/json")
     public ResponseEntity<Object> getValue(@PathVariable String key) {
@@ -47,8 +50,8 @@ public class MedicalPlanController {
 
         JSONObject json = new JSONObject(medicalPlan);
         try {
-            validator.validateJson(json);
-        } catch(ValidationException ex){
+            validator.validateJson(json, jsonSchema);
+        } catch (ValidationException ex){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("Error",ex.getErrorMessage()).toString());
         }
 
