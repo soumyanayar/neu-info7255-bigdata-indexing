@@ -32,7 +32,7 @@ public class MedicalPlanController {
 
     @GetMapping(value = "/plan/{key}", produces = "application/json")
     public ResponseEntity<Object> getValue(@PathVariable String key) {
-        String value = redisService.getValue(key);
+        JSONObject value = redisService.getValue(key);
 
         if (value == null) {
             return new ResponseEntity<Object>("{\"message\": \"No Data Found\" }", HttpStatus.NOT_FOUND);
@@ -57,18 +57,18 @@ public class MedicalPlanController {
 
         String key = json.get("objectType").toString() + "_" + json.get("objectId").toString();
 
-        if (redisService.getValue(key) != null) {
+        if (redisService.doesKeyExist(key)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(" {\"message\": \"A resource already exists with the id: " + key + "\" }");
         }
 
-        redisService.postValue(key, json.toString());
+        String computedETag = redisService.postValue(key, json);
 
-        return ResponseEntity.ok().body(" {\"message\": \"Created data with key: " + key + "\" }");
+        return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Created data with key: " + key + "\" }");
     }
 
     @DeleteMapping(path = "/plan/{key}", produces = "application/json")
     public ResponseEntity<Object> deletePlan(@PathVariable String key) {
-        if (redisService.getValue(key) == null) {
+        if (!redisService.doesKeyExist(key)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(" {\"message\": \"A resource does not exists with the id: " + key + "\" }");
         }
 

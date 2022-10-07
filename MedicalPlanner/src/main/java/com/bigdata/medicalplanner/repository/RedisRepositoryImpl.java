@@ -24,6 +24,11 @@ public class RedisRepositoryImpl<T> implements RedisRepository<T> {
     }
 
     @Override
+    public boolean doesKeyExist(String key) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+    }
+
+    @Override
     public T getValue(String key) {
         return valueOperations.get(key);
     }

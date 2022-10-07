@@ -1,9 +1,15 @@
 package com.bigdata.medicalplanner.service;
 
-public interface RedisService {
-    public String getValue(final String key);
+import org.json.JSONObject;
 
-    public void postValue(final String key, final String value);
+public interface RedisService {
+    public JSONObject getValue(final String key);
+
+    public String getETagValue(String key);
+
+    public boolean doesKeyExist(String key);
+
+    public String postValue(final String key, final JSONObject value);
 
     public boolean deleteValue(final String key);
 }

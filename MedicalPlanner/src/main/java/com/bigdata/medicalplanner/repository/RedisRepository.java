@@ -8,5 +8,7 @@ public interface RedisRepository<T> {
 
     public T getValue(String key);
 
+    public boolean doesKeyExist(String key);
+
     public boolean deleteValue(String key);
 }
