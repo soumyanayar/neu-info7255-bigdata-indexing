@@ -31,45 +31,50 @@ public class MedicalPlanController {
     }
 
     @GetMapping(value = "/plan/{key}", produces = "application/json")
-    public ResponseEntity<Object> getValue(@PathVariable String key) {
-        JSONObject value = redisService.getValue(key);
-
-        if (value == null) {
-            return new ResponseEntity<Object>("{\"message\": \"No Data Found\" }", HttpStatus.NOT_FOUND);
+    public ResponseEntity<Object> getValue(@PathVariable String key, @RequestHeader HttpHeaders headers) {
+        if (!redisService.doesKeyExist(key)) {
+            return new ResponseEntity<Object>("{\"message\": \"No Plan Found with the requested key\" }", HttpStatus.NOT_FOUND);
         }
 
-        return ResponseEntity.ok().body(value);
+        String eTag = headers.getFirst("If-None-Match");
+        String planEtag = redisService.getETagValue(key);
+        if (eTag != null && eTag.equals(planEtag)) {
+            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).eTag(planEtag).build();
+        }
+
+        JSONObject value = redisService.getValue(key);
+        return ResponseEntity.ok().eTag(planEtag).body(value.toString());
     }
 
 
     @PostMapping(path = "/plan", produces = "application/json")
-    public ResponseEntity<Object> createPlan(@RequestBody(required = false) String medicalPlan, @RequestHeader HttpHeaders headers) throws JSONException, Exception {
+    public ResponseEntity<Object> createPlan(@RequestBody(required = false) String medicalPlan, @RequestHeader HttpHeaders headers) throws Exception {
         if (medicalPlan == null || medicalPlan.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("Error", "Body is Empty. Kindly provide the JSON").toString());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("Error", "Empty Payload. Kindly provide the JSON Payload for the Plan").toString());
         }
 
         JSONObject json = new JSONObject(medicalPlan);
         try {
             validator.validateJson(json, jsonSchema);
         } catch (ValidationException ex){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("Error",ex.getErrorMessage()).toString());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("Error", ex.getErrorMessage()).toString());
         }
 
         String key = json.get("objectType").toString() + "_" + json.get("objectId").toString();
 
         if (redisService.doesKeyExist(key)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(" {\"message\": \"A resource already exists with the id: " + key + "\" }");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(" {\"message\": \"A Plan already exists with the id: " + key + "\" }");
         }
 
         String computedETag = redisService.postValue(key, json);
 
-        return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Created data with key: " + key + "\" }");
+        return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Created a Plan with key: " + key + "\" }");
     }
 
     @DeleteMapping(path = "/plan/{key}", produces = "application/json")
     public ResponseEntity<Object> deletePlan(@PathVariable String key) {
         if (!redisService.doesKeyExist(key)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(" {\"message\": \"A resource does not exists with the id: " + key + "\" }");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(" {\"message\": \"A Plan does not exist with the requested key: " + key + "\" }");
         }
 
         redisService.deleteValue(key);
