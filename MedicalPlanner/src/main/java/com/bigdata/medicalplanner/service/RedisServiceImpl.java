@@ -35,6 +35,7 @@ public class RedisServiceImpl implements RedisService {
 
     @Override
     public String getETagValue(String key) {
+
         return redisRepository.getValue(CommonConstants.ETagKeyPrefix + key);
     }
 
