@@ -1,7 +1,9 @@
 package com.bigdata.medicalplanner.configuration;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -9,8 +11,10 @@ import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import org.springframework.data.redis.core.RedisTemplate;
 
 @Configuration
+
 public class RedisConfiguration {
     @Bean
     JedisConnectionFactory jedisConnectionFactory() {
@@ -28,8 +32,10 @@ public class RedisConfiguration {
         return template;
     }
 
+
     @Bean
     public Jedis getJedis(){
         return new JedisPool().getResource();
     }
+
 }

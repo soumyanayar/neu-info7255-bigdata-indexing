@@ -2,16 +2,10 @@ package com.bigdata.medicalplanner.controller;
 
 import com.bigdata.medicalplanner.service.RedisService;
 import com.bigdata.medicalplanner.util.JsonValidator;
-import com.fasterxml.jackson.databind.JsonNode;
-import netscape.javascript.JSObject;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -81,3 +75,5 @@ public class MedicalPlanController {
         return ResponseEntity.noContent().build();
     }
 }
+
+
