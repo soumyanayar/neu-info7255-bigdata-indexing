@@ -11,7 +11,6 @@ import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import org.springframework.data.redis.core.RedisTemplate;
 
 @Configuration
 

@@ -9,12 +9,12 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @EnableAutoConfiguration
-public class UserRepositoryImpl implements UserRepository{
-    private final RedisTemplate<String, User> redisTemplate;
-    private final ValueOperations<String, User> valueOperations;
+public class UserRepositoryImpl<T> implements UserRepository<T>{
+    private final RedisTemplate<String, T> redisTemplate;
+    private final ValueOperations<String, T> valueOperations;
 
     @Autowired
-    UserRepositoryImpl(RedisTemplate<String, User> redisTemplate) {
+    UserRepositoryImpl(RedisTemplate<String, T> redisTemplate) {
         this.redisTemplate = redisTemplate;
         this.valueOperations = redisTemplate.opsForValue();
     }
@@ -32,7 +32,7 @@ public class UserRepositoryImpl implements UserRepository{
                 .firstName(firstName)
                 .lastName(lastName)
                 .build();
-        valueOperations.set(email, user);
+        valueOperations.set(email, (T) user);
     }
 
     @Override

@@ -43,10 +43,6 @@ public class UserService {
         userRepository.addUser(email, encryptedPassword, firstName, lastName);
     }
 
-    public boolean doesUserExist(String email) {
-        return userRepository.doesUserExist(email);
-    }
-
     public boolean deleteUser(String email) {
         if(!userRepository.doesUserExist(email)) {
             throw new RuntimeException("User does not exist");

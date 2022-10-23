@@ -1,7 +1,9 @@
 package com.bigdata.medicalplanner.util;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
 
+@Service
 public class SecurityUtils {
     //Encode password using RSA
     public String encodePassword(String password) {

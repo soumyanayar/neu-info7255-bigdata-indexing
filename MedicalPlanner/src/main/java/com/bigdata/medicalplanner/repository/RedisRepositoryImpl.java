@@ -37,4 +37,5 @@ public class RedisRepositoryImpl<T> implements RedisRepository<T> {
     public boolean deleteValue(String key) {
         return Boolean.TRUE.equals(redisTemplate.delete(key));
     }
+
 }
