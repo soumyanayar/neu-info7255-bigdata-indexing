@@ -1,46 +1,35 @@
 package com.bigdata.medicalplanner.service;
 
+import com.bigdata.medicalplanner.entity.User;
 import com.bigdata.medicalplanner.repository.UserRepository;
-import com.bigdata.medicalplanner.util.SecurityUtils;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-
 @Service
-public class UserService {
+public class UserService  {
     private final UserRepository userRepository;
 
-    private final SecurityUtils securityUtils;
-
     @Autowired
-    public  UserService(UserRepository userRepository, SecurityUtils securityUtils) {
+    public  UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.securityUtils = securityUtils;
     }
 
-    public String loginUser(String email, String password) {
-        if(email == null || password == null) {
-            return "Email or Password is not valid";
+    public JSONObject getUser(String email) {
+        User user = (User) userRepository.getUser(email);
+        if(user == null) {
+            return null;
         }
-
-       if(!userRepository.doesUserExist(email) || !isValidEmailAddress(email)) {
-           return "Enter a valid email id";
-       }
-
-       String userEncryptedPassword = userRepository.getUser(email);
-       if(securityUtils.isPassswordValid(password, userEncryptedPassword)) {
-           return "Email or Password is not valid";
-       }
-
-       return "Logged in successfully";
+        JSONObject json = new JSONObject();
+        json.put("email", user.getEmail());
+        json.put("password", user.getPassword());
+        json.put("firstName", user.getFirstName());
+        json.put("lastName", user.getLastName());
+        return json;
     }
 
-    public void registerUser(String email, String password, String firstName, String lastName) {
-        if(userRepository.doesUserExist(email)) {
-            throw new RuntimeException("User already exists");
-        }
-        String encryptedPassword = securityUtils.encodePassword(password);
-        userRepository.addUser(email, encryptedPassword, firstName, lastName);
+    public void registerUser(User user) {
+        //String encryptedPassword = securityUtils.encodePassword(password);
+        userRepository.addUser(user);
     }
 
     public boolean deleteUser(String email) {
@@ -50,10 +39,15 @@ public class UserService {
         return userRepository.deleteUser(email);
     }
 
+    public boolean doesUserExist(String email) {
+        return userRepository.doesUserExist(email);
+    }
+
     public boolean isValidEmailAddress(String email) {
         String ePattern = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
         java.util.regex.Pattern p = java.util.regex.Pattern.compile(ePattern);
         java.util.regex.Matcher m = p.matcher(email);
         return m.matches();
     }
+
 }

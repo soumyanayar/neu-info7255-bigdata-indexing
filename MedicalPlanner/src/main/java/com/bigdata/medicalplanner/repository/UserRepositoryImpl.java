@@ -13,6 +13,8 @@ public class UserRepositoryImpl<T> implements UserRepository<T>{
     private final RedisTemplate<String, T> redisTemplate;
     private final ValueOperations<String, T> valueOperations;
 
+   // private static final String KEY = "USER";
+
     @Autowired
     UserRepositoryImpl(RedisTemplate<String, T> redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -20,19 +22,19 @@ public class UserRepositoryImpl<T> implements UserRepository<T>{
     }
 
     @Override
-    public String getUser(String email) {
-        valueOperations.get(email);
-        return valueOperations.get(email).toString();
+    public User getUser(String email) {
+        User user = (User) valueOperations.get(email);
+        return user;
     }
 
     @Override
-    public void addUser(String email, String password, String firstName, String lastName) {
-        User user = User.builder()
-                .password(password)
-                .firstName(firstName)
-                .lastName(lastName)
-                .build();
-        valueOperations.set(email, (T) user);
+    public void addUser(User user) {
+        try{
+            valueOperations.set(user.getEmail(), (T) user);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     @Override

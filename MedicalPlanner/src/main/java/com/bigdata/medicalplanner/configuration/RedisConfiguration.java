@@ -8,12 +8,12 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericToStringSerializer;
+import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 @Configuration
-
 public class RedisConfiguration {
     @Bean
     JedisConnectionFactory jedisConnectionFactory() {
@@ -26,8 +26,13 @@ public class RedisConfiguration {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(jedisConnectionFactory());
         template.setKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(new GenericToStringSerializer<Object>(Object.class));
-        template.setValueSerializer(new GenericToStringSerializer<Object>(Object.class));
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new JdkSerializationRedisSerializer());
+        template.setValueSerializer(new JdkSerializationRedisSerializer());
+        template.setEnableTransactionSupport(true);
+        template.afterPropertiesSet();
+        //template.setHashValueSerializer(new GenericToStringSerializer<Object>(Object.class));
+        //template.setValueSerializer(new GenericToStringSerializer<Object>(Object.class));
         return template;
     }
 
