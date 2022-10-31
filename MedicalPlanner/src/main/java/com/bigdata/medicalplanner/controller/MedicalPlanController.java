@@ -17,11 +17,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 public class MedicalPlanController {
     private final RedisService redisService;
     private final JsonValidator validator;
     private final Schema jsonSchema;
+
+
 
     @Autowired
     public MedicalPlanController(RedisService redisService, JsonValidator validator, Schema jsonSchema) {
@@ -33,7 +37,7 @@ public class MedicalPlanController {
     @GetMapping(value = "/plan/{key}", produces = "application/json")
     public ResponseEntity<Object> getValue(@PathVariable String key, @RequestHeader HttpHeaders headers) {
         if (!redisService.doesKeyExist(key)) {
-            return new ResponseEntity<Object>("{\"message\": \"No Plan Found with the requested key\" }", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<Object>("{\"message\": \"Key does not exist\" }", HttpStatus.NOT_FOUND);
         }
 
         String eTag = headers.getFirst("If-None-Match");
@@ -50,7 +54,7 @@ public class MedicalPlanController {
     @PostMapping(path = "/plan", produces = "application/json")
     public ResponseEntity<Object> createPlan(@RequestBody(required = false) String medicalPlan, @RequestHeader HttpHeaders headers) throws Exception {
         if (medicalPlan == null || medicalPlan.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("Error", "Empty Payload. Kindly provide the JSON Payload for the Plan").toString());
+
         }
 
         JSONObject json = new JSONObject(medicalPlan);
@@ -79,5 +83,41 @@ public class MedicalPlanController {
 
         redisService.deleteValue(key);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping(path = "/plan/{key}", produces = "application/json")
+    public ResponseEntity<Object> updatePlan(@PathVariable String key, @RequestBody(required = false) String medicalPlan, @RequestHeader HttpHeaders headers) throws Exception {
+        if (medicalPlan == null || medicalPlan.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("Error", "Empty Payload. Kindly provide the JSON Payload for the Plan").toString());
+        }
+
+        JSONObject json = new JSONObject(medicalPlan);
+        try {
+            validator.validateJson(json, jsonSchema);
+        } catch (ValidationException ex){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONObject().put("Error", ex.getErrorMessage()).toString());
+        }
+
+        String eTag = headers.getFirst("If-Match");
+
+        //if header contains if-match
+        if(eTag != null && headers.containsKey("If-Match")){
+                // if-match is not equal to etag
+            if(!eTag.equals(redisService.getETagValue(key))){
+                    return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED).body(" {\"message\": \"The ETag provided does not match the ETag of the Plan with the requested key: " + key + "\" }");
+            }
+            else{
+                String computedETag = redisService.postValue(key, json);
+                return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Updated a Plan with key: " + key + "\" }");
+            }
+        }
+
+        if (!redisService.doesKeyExist(key)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(" {\"message\": \"A Plan does not exist with the requested key: " + key + "\" }");
+        }
+
+        String computedETag = redisService.postValue(key, json);
+
+        return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Successfully updated the Plan with key: " + key + "\" }");
     }
 }
