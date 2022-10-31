@@ -4,9 +4,15 @@ import com.bigdata.medicalplanner.entity.User;
 import com.bigdata.medicalplanner.repository.UserRepository;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+
 @Service
-public class UserService  {
+public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Autowired
@@ -50,4 +56,12 @@ public class UserService  {
         return m.matches();
     }
 
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = (User) userRepository.getUser(email);
+        if(user == null) {
+            throw new UsernameNotFoundException("User does not exist");
+        }
+        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), new ArrayList<>());
+    }
 }

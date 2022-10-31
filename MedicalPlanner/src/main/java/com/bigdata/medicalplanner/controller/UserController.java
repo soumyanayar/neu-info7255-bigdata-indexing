@@ -1,26 +1,35 @@
 package com.bigdata.medicalplanner.controller;
+import com.bigdata.medicalplanner.entity.JwtRequest;
 import com.bigdata.medicalplanner.entity.User;
 import com.bigdata.medicalplanner.service.UserService;
+import com.bigdata.medicalplanner.util.JwtUtility;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
     private final UserService userService;
+    private final JwtUtility jwtUtility;
+    private final AuthenticationManager authenticationManager;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, JwtUtility jwtUtility, AuthenticationManager authenticationManager) {
         this.userService = userService;
+        this.jwtUtility = jwtUtility;
+        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping(value ="/login")
-    public ResponseEntity<Object> loginUser(@RequestBody User user) {
-        String email = user.getEmail();
-        String password = user.getPassword();
+    public ResponseEntity<Object> loginUser(@RequestBody JwtRequest jwtRequest) {
+        String email = jwtRequest.getEmail();
+        String password = jwtRequest.getPassword();
 
         if(!userService.isValidEmailAddress(email)) {
             return new ResponseEntity<>("Invalid email address", HttpStatus.BAD_REQUEST);
@@ -30,12 +39,21 @@ public class UserController {
             return new ResponseEntity<>("User does not exist", HttpStatus.NOT_FOUND);
         }
 
-        JSONObject userObject = userService.getUser(email);
-        if(!userObject.getString("password").equals(password))   {
-            return new ResponseEntity<>("Incorrect password", HttpStatus.UNAUTHORIZED);
-        }
+       try{
+           authenticationManager.authenticate(
+                   new UsernamePasswordAuthenticationToken(email, password)
+           );
+       } catch (Exception e) {
+           return new ResponseEntity<>("Invalid password", HttpStatus.BAD_REQUEST);
+       }
 
-        return new ResponseEntity<>(new JSONObject().put("message", "Login Successful").toString(), HttpStatus.OK);
+       final UserDetails userDetails = userService.loadUserByUsername(email);
+       final String token = jwtUtility.generateToken(userDetails);
+
+       JSONObject json = new JSONObject();
+       json.put("token", token);
+       json.put("email", email);
+       return new ResponseEntity<>(json.toString(), HttpStatus.OK);
     }
 
     @PostMapping(value ="/register")
