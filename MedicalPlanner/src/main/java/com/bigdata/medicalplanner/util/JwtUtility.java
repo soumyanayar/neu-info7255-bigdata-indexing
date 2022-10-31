@@ -67,7 +67,7 @@ public class JwtUtility implements Serializable {
     private String doGenerateToken(Map<String, Object> claims, String subject) {
         return Jwts.builder().setClaims(claims).setSubject(subject).setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY * 1000))
-                .signWith(SignatureAlgorithm.RS256, secretKey).compact();
+                .signWith(SignatureAlgorithm.HS512, secretKey).compact();
     }
 
 
