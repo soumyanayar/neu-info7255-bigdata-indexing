@@ -1,5 +1,7 @@
 package com.bigdata.medicalplanner.controller;
 
+import com.bigdata.medicalplanner.exceptions.InvalidPayloadException;
+import com.bigdata.medicalplanner.exceptions.KeyAlreadyExistsException;
 import com.bigdata.medicalplanner.models.AuthenticationRequest;
 import com.bigdata.medicalplanner.models.AuthenticationResponse;
 import com.bigdata.medicalplanner.models.User;
@@ -50,18 +52,18 @@ public class UsersController {
     }
 
     @PostMapping(value ="/register")
-    public ResponseEntity<Object> registerUser(@RequestBody User user) {
+    public ResponseEntity<Object> registerUser(@RequestBody User user) throws InvalidPayloadException, KeyAlreadyExistsException {
         String username = user.getUsername();
         String password = user.getPassword();
         String firstName = user.getFirstName();
         String lastName = user.getLastName();
 
         if (username == null || password == null || firstName == null || lastName == null) {
-            return new ResponseEntity<Object>("{\"message\": \"Invalid Payload. Kindly provide the email, password, firstname and lastname for the user\" }", HttpStatus.BAD_REQUEST);
+            throw new InvalidPayloadException("Invalid payload");
         }
 
         if (userDetailsService.isUserExist(username)) {
-            return new ResponseEntity<Object>("{\"message\": \"User already exists with the username: " + username + "\" }", HttpStatus.CONFLICT);
+           throw new KeyAlreadyExistsException(String.format("User with username %s already exists", username));
         }
 
         user.setActive(true);
