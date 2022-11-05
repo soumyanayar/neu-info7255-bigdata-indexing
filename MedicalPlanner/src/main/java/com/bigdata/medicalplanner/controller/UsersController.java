@@ -8,6 +8,7 @@ import com.bigdata.medicalplanner.models.User;
 import com.bigdata.medicalplanner.service.UserServiceImpl;
 import com.bigdata.medicalplanner.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -72,4 +73,19 @@ public class UsersController {
         userDetailsService.registerUser(user);
         return ResponseEntity.ok().body(" {\"message\": \"User : " + username + " is registered successfully\" }");
     }
+
+    @PostMapping(value = "/validate")
+    public ResponseEntity<Object> validateToken(@RequestHeader HttpHeaders headers) throws InvalidPayloadException {
+        String token = headers.getFirst("Authorization");
+        if (token == null) {
+            throw new InvalidPayloadException("Invalid payload");
+        }
+
+        if (jwtTokenUtil.validateToken(token, userDetailsService.loadUserByUsername((jwtTokenUtil.extractUsername(token))))) {
+            return ResponseEntity.ok().body(" {\"message\": \"Token is valid\" }");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(" {\"message\": \"Token is invalid\" }");
+        }
+    }
+
 }

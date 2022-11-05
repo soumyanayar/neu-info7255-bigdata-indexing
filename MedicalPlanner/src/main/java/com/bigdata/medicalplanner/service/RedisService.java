@@ -12,4 +12,5 @@ public interface RedisService {
     public String postValue(final String key, final JSONObject value);
 
     public boolean deleteValue(final String key);
+
 }
