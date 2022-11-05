@@ -1,7 +1,11 @@
 package com.bigdata.medicalplanner.filters;
 
+import com.bigdata.medicalplanner.models.ErrorResponse;
 import com.bigdata.medicalplanner.util.JwtUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +19,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Date;
 
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
@@ -25,6 +30,15 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    ObjectMapper objectMapper;
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return "/users/authenticate".equals(path) || "/users/register".equals(path);
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -34,13 +48,58 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         String username = null;
         String jwt = null;
 
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7);
-            username = jwtUtil.extractUsername(jwt);
+        if (authorizationHeader == null)
+        {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    "Token missing",
+                    HttpStatus.UNAUTHORIZED.value(),
+                    new Date(),
+                    HttpStatus.UNAUTHORIZED.getReasonPhrase()
+            );
+
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+            objectMapper.writeValue(response.getWriter(), errorResponse);
+            return;
         }
 
+        if (!authorizationHeader.startsWith("Bearer ")) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    "Invalid Token format",
+                    HttpStatus.UNAUTHORIZED.value(),
+                    new Date(),
+                    HttpStatus.UNAUTHORIZED.getReasonPhrase()
+            );
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+            objectMapper.writeValue(response.getWriter(), errorResponse);
+            return;
+        }
+
+        jwt = authorizationHeader.substring(7);
+        username = jwtUtil.extractUsername(jwt);
+
+        if (username == null) {
+            // Return 401 Unauthorized
+            // Return 401 Unauthorized
+            ErrorResponse errorResponse = new ErrorResponse(
+                    "Invalid token",
+                    HttpStatus.UNAUTHORIZED.value(),
+                    new Date(),
+                    HttpStatus.UNAUTHORIZED.getReasonPhrase()
+            );
+
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+            objectMapper.writeValue(response.getWriter(), errorResponse);
+            return;
+        }
+
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
@@ -51,6 +110,20 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 usernamePasswordAuthenticationToken
                         .setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            } else {
+                // Return 401 Unauthorized
+                ErrorResponse errorResponse = new ErrorResponse(
+                        "Invalid token",
+                        HttpStatus.UNAUTHORIZED.value(),
+                        new Date(),
+                        HttpStatus.UNAUTHORIZED.getReasonPhrase()
+                );
+
+                response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+                objectMapper.writeValue(response.getWriter(), errorResponse);
+                return;
             }
         }
         chain.doFilter(request, response);

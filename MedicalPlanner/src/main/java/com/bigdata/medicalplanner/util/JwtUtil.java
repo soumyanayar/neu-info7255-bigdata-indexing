@@ -26,7 +26,11 @@ public class JwtUtil {
     public static final long JWT_TOKEN_VALIDITY = 5 * 60;
 
     public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+        try {
+            return extractClaim(token, Claims::getSubject);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public Date extractExpiration(String token) {
