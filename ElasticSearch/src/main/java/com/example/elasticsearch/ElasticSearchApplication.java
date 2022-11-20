@@ -3,7 +3,7 @@ package com.example.elasticsearch;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@ContextConfiguration("classpath:META-INF/spring/rabbitmq-producer.xml")
+@SpringBootApplication
 public class ElasticSearchApplication {
 
     public static void main(String[] args) {
