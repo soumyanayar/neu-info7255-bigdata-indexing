@@ -1,5 +1,6 @@
 package com.bigdata.medicalplanner.controller;
 
+import com.bigdata.medicalplanner.configuration.MQConfig;
 import com.bigdata.medicalplanner.exceptions.*;
 import com.bigdata.medicalplanner.service.RedisService;
 import com.bigdata.medicalplanner.util.JsonValidator;
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
 import org.json.JSONObject;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,12 +27,15 @@ public class MedicalPlanController {
     private final JsonValidator validator;
     private final Schema jsonSchema;
 
+    private final RabbitTemplate rabbitTemplate;
+
 
     @Autowired
-    public MedicalPlanController(RedisService redisService, JsonValidator validator, Schema jsonSchema) {
+    public MedicalPlanController(RedisService redisService, JsonValidator validator, Schema jsonSchema, RabbitTemplate rabbitTemplate) {
         this.redisService = redisService;
         this.validator = validator;
         this.jsonSchema = jsonSchema;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @GetMapping(value = "/plan/{key}", produces = "application/json")
@@ -46,6 +51,7 @@ public class MedicalPlanController {
         }
 
         JSONObject value = redisService.getValue(key);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, value);
         return ResponseEntity.ok().eTag(planEtag).body(value.toString());
     }
 
@@ -70,7 +76,9 @@ public class MedicalPlanController {
         }
 
         String computedETag = redisService.postValue(key, json);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, json);
 
+        System.out.println("Message sent to the RabbitMQ Successfully");
         return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Created a Plan with key: " + key + "\" }");
     }
 
@@ -81,6 +89,7 @@ public class MedicalPlanController {
         }
 
         redisService.deleteValue(key);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, key);
         return ResponseEntity.noContent().build();
     }
 
@@ -110,6 +119,7 @@ public class MedicalPlanController {
         }
 
         String computedETag = redisService.postValue(key, json);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, json);
         return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Successfully updated the Plan with key: " + key + "\" }");
     }
 
@@ -145,6 +155,7 @@ public class MedicalPlanController {
         }
 
         String computedETag = redisService.postValue(key, mergedMedicalPlanJsonObject);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, mergedMedicalPlanJsonObject);
         return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Successfully patched the Plan with key: " + key + "\" }");
     }
 }

@@ -41,7 +41,7 @@ class MedicalPlanControllerTest {
 
     @BeforeEach
     void setUp()  {
-        this.mockMvc = MockMvcBuilders.standaloneSetup(new MedicalPlanController(redisService, validator, jsonSchema)).build();
+        this.mockMvc = MockMvcBuilders.standaloneSetup(new MedicalPlanController(redisService, validator, jsonSchema, mqConfig)).build();
     }
 
     String medicalPlan = "{\"planCostShares\":{\"deductible\":5000,\"_org\":\"example.com\",\"copay\":23,\"objectId\":\"1234vxc2324sdf-550\",\"objectType\":\"membercostshare\"}," +
@@ -51,7 +51,7 @@ class MedicalPlanControllerTest {
 
     @Test
     void createMedicalPlan_success() throws Exception {
-        MedicalPlanController medicalPlanController = new MedicalPlanController(redisService, validator, jsonSchema);
+        MedicalPlanController medicalPlanController = new MedicalPlanController(redisService, validator, jsonSchema, mqConfig);
         JSONObject json = new JSONObject(medicalPlan);
         validator.validateJson(json, jsonSchema);
         String key  = json.get("objectType").toString() + "_" + json.get("objectId").toString();
@@ -62,7 +62,7 @@ class MedicalPlanControllerTest {
 
     @Test
     void createMedicalPlan_conflict() throws Exception {
-        MedicalPlanController medicalPlanController = new MedicalPlanController(redisService, validator, jsonSchema);
+        MedicalPlanController medicalPlanController = new MedicalPlanController(redisService, validator, jsonSchema, mqConfig);
         JSONObject json = new JSONObject(medicalPlan);
         //validator.validateJson(json, jsonSchema);
         String key  = json.get("objectType").toString() + "_" + json.get("objectId").toString();
@@ -72,7 +72,7 @@ class MedicalPlanControllerTest {
 
     @Test
     void createMedicalPlan_badRequest() throws Exception {
-        MedicalPlanController medicalPlanController = new MedicalPlanController(redisService, validator, jsonSchema);
+        MedicalPlanController medicalPlanController = new MedicalPlanController(redisService, validator, jsonSchema, mqConfig);
         JSONObject json = new JSONObject(medicalPlan);
         Mockito.doThrow(new ValidationException("error")).when(validator).validateJson(Mockito.any(JSONObject.class), Mockito.any(Schema.class));
         Assertions.assertEquals(400, medicalPlanController.createPlan(medicalPlan, null).getStatusCodeValue());
