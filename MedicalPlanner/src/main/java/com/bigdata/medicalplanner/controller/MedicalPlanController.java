@@ -2,6 +2,7 @@ package com.bigdata.medicalplanner.controller;
 
 import com.bigdata.medicalplanner.configuration.MQConfig;
 import com.bigdata.medicalplanner.exceptions.*;
+import com.bigdata.medicalplanner.models.ProducerMessage;
 import com.bigdata.medicalplanner.service.RedisService;
 import com.bigdata.medicalplanner.util.JsonValidator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,7 +30,6 @@ public class MedicalPlanController {
 
     private final RabbitTemplate rabbitTemplate;
 
-
     @Autowired
     public MedicalPlanController(RedisService redisService, JsonValidator validator, Schema jsonSchema, RabbitTemplate rabbitTemplate) {
         this.redisService = redisService;
@@ -51,7 +51,6 @@ public class MedicalPlanController {
         }
 
         JSONObject value = redisService.getValue(key);
-        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, value);
         return ResponseEntity.ok().eTag(planEtag).body(value.toString());
     }
 
@@ -76,7 +75,8 @@ public class MedicalPlanController {
         }
 
         String computedETag = redisService.postValue(key, json);
-        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, json);
+        ProducerMessage message = new ProducerMessage(medicalPlan, "New plan created", key);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, message);
 
         System.out.println("Message sent to the RabbitMQ Successfully");
         return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Created a Plan with key: " + key + "\" }");
@@ -89,7 +89,8 @@ public class MedicalPlanController {
         }
 
         redisService.deleteValue(key);
-        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, key);
+        ProducerMessage message = new ProducerMessage("", "Plan deleted", key);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, message);
         return ResponseEntity.noContent().build();
     }
 
@@ -119,7 +120,8 @@ public class MedicalPlanController {
         }
 
         String computedETag = redisService.postValue(key, json);
-        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, json);
+        ProducerMessage message = new ProducerMessage(medicalPlan, "Plan updated(With Put Operation)", key);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, message);
         return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Successfully updated the Plan with key: " + key + "\" }");
     }
 
@@ -155,7 +157,8 @@ public class MedicalPlanController {
         }
 
         String computedETag = redisService.postValue(key, mergedMedicalPlanJsonObject);
-        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, mergedMedicalPlanJsonObject);
+        ProducerMessage message = new ProducerMessage(mergedMedicalPlanJsonObject.toString(), "Plan updated(With Patch Operation)", key);
+        rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, message);
         return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Successfully patched the Plan with key: " + key + "\" }");
     }
 }
