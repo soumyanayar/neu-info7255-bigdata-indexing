@@ -1,4 +1,4 @@
-package com.example.elasticsearch;
+package com.example.elasticsearch.configuration;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
