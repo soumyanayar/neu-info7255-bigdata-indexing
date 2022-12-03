@@ -68,14 +68,14 @@ public class MedicalPlanController {
             throw new JsonValidationFailureException("Schema validation failed, provide a valid json");
         }
 
-        String key = json.get("objectType").toString() + "_" + json.get("objectId").toString();
+        String key = json.get("objectId").toString();
 
         if (redisService.doesKeyExist(key)) {
             throw new KeyAlreadyExistsException(String.format("Medical plan with key %s already exists", key));
         }
 
         String computedETag = redisService.postValue(key, json);
-        ProducerMessage message = new ProducerMessage(medicalPlan, "New plan created", key);
+        ProducerMessage message = new ProducerMessage(medicalPlan, "SAVE", key);
         rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, message);
 
         System.out.println("Message sent to the RabbitMQ Successfully");
@@ -88,8 +88,9 @@ public class MedicalPlanController {
             throw new ValueNotFoundExceptions(String.format("Medical plan with key %s not found", key));
         }
 
+        String medicalPlan = redisService.getValue(key).toString();
         redisService.deleteValue(key);
-        ProducerMessage message = new ProducerMessage("", "Plan deleted", key);
+        ProducerMessage message = new ProducerMessage(medicalPlan, "DELETE", key);
         rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, message);
         return ResponseEntity.noContent().build();
     }
@@ -120,7 +121,7 @@ public class MedicalPlanController {
         }
 
         String computedETag = redisService.postValue(key, json);
-        ProducerMessage message = new ProducerMessage(medicalPlan, "Plan updated(With Put Operation)", key);
+        ProducerMessage message = new ProducerMessage(medicalPlan, "SAVE", key);
         rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, message);
         return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Successfully updated the Plan with key: " + key + "\" }");
     }
@@ -157,7 +158,7 @@ public class MedicalPlanController {
         }
 
         String computedETag = redisService.postValue(key, mergedMedicalPlanJsonObject);
-        ProducerMessage message = new ProducerMessage(mergedMedicalPlanJsonObject.toString(), "Plan updated(With Patch Operation)", key);
+        ProducerMessage message = new ProducerMessage(mergedMedicalPlanJsonObject.toString(), "SAVE", key);
         rabbitTemplate.convertAndSend(MQConfig.EXCHANGE, MQConfig.ROUTING_KEY, message);
         return ResponseEntity.ok().eTag(computedETag).body(" {\"message\": \"Successfully patched the Plan with key: " + key + "\" }");
     }
