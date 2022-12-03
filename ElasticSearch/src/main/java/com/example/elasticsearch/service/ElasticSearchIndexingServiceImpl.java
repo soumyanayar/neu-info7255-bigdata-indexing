@@ -20,15 +20,21 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 public class ElasticSearchIndexingServiceImpl implements IndexingService {
     private final RestHighLevelClient elasticSearchClient;
+
+    private final ExecutorService executor;
     private static final String IndexName = "plan_index";
 
     @Autowired
     public ElasticSearchIndexingServiceImpl(RestHighLevelClient elasticSearchClient) {
         this.elasticSearchClient = elasticSearchClient;
+        this.executor = Executors.newFixedThreadPool(10);
     }
 
     @Override
@@ -44,7 +50,8 @@ public class ElasticSearchIndexingServiceImpl implements IndexingService {
             System.out.println("------------------MapOfDocuments-------------------------");
             System.out.println(MapOfDocuments.toString());
             System.out.println("------------------newMap-------------------------");
-//            System.out.println(newMap.toString());
+
+            List<Callable<Void>> callableTasks = new ArrayList<>();
             for (Map.Entry<String, Map<String, Object>> entry : MapOfDocuments.entrySet()) {
                 System.out.println("------------------entry-------------------------");
                 System.out.println(entry);
@@ -57,15 +64,17 @@ public class ElasticSearchIndexingServiceImpl implements IndexingService {
                 request.setRefreshPolicy("wait_for");
                 System.out.println("------------------request-------------------------");
                 System.out.println(request);
-                try {
-                    elasticSearchClient.index(request, RequestOptions.DEFAULT);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
 
+                Callable<Void> callableTask = () -> {
+                    elasticSearchClient.index(request, RequestOptions.DEFAULT);
+                    return null;
+                };
+
+                callableTasks.add(callableTask);
                 //System.out.println("response id: " + indexResponse.getId() + " parent id: " + parentId);
             }
-        }catch (Exception e){
+            executor.invokeAll(callableTasks);
+        } catch (Exception e){
             e.printStackTrace();
         }
     }
@@ -75,18 +84,18 @@ public class ElasticSearchIndexingServiceImpl implements IndexingService {
         try {
             ArrayList<String> listOfKeys = new ArrayList<>();
             convertToKeys(jsonObject, listOfKeys);
+            List<Callable<Void>> callableTasks = new ArrayList<>();
             for (String key : listOfKeys) {
                 DeleteRequest request = new DeleteRequest(IndexName, key);
-                try {
-                    DeleteResponse deleteResponse = elasticSearchClient.delete(
-                            request, RequestOptions.DEFAULT);
-                    if (deleteResponse.getResult() == DocWriteResponse.Result.NOT_FOUND) {
-                        System.out.println("Document " + key + " Not Found!!");
-                    }
-                } catch (Exception e) {
-                    // e.printStackTrace();
-                }
+                Callable<Void> callableTask = () -> {
+                    elasticSearchClient.delete(request, RequestOptions.DEFAULT);
+                    return null;
+                };
+
+                callableTasks.add(callableTask);
             }
+
+            executor.invokeAll(callableTasks);
         }
         catch(Exception e) {
             System.out.println(e.getMessage());
